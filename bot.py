@@ -1,6 +1,5 @@
 import asyncio
 import os
-import socket
 from aiogram import Bot, Dispatcher, types, F
 from aiogram.filters import Command
 import google.generativeai as genai
@@ -13,9 +12,9 @@ SYSTEM_PROMPT = os.getenv("SYSTEM_PROMPT", "Ты — универсальный 
 # --- НАСТРОЙКА AI ---
 genai.configure(api_key=GEMINI_API_KEY)
 
-# Используем полный путь к модели для стабильности API
+# Используем "gemini-1.5-flash-latest" — это самый стабильный идентификатор
 model = genai.GenerativeModel(
-    model_name="models/gemini-1.5-flash", 
+    model_name="gemini-1.5-flash-latest", 
     system_instruction=SYSTEM_PROMPT,
     tools=[{"google_search_retrieval": {}}] # Ресерч в интернете
 )
@@ -34,7 +33,7 @@ def get_chat(user_id):
 async def start_handler(message: types.Message):
     user_id = message.from_user.id
     chat_sessions[user_id] = model.start_chat(history=[]) # Сброс памяти
-    await message.answer("Привет! Я твой ИИ-ассистент. Я готов к работе, помню контекст и умею искать информацию в сети.")
+    await message.answer("Бот проснулся и готов к работе! Я помню контекст и умею пользоваться поиском.")
 
 @dp.message(F.voice)
 async def voice_handler(message: types.Message):
@@ -67,10 +66,10 @@ async def text_handler(message: types.Message):
     await bot.send_chat_action(message.chat.id, "typing")
     chat = get_chat(message.from_user.id)
     try:
+        # Прямая отправка сообщения в чат с памятью
         response = chat.send_message(message.text)
         await message.reply(response.text)
     except Exception as e:
-        # Если поиск временно недоступен или модель выдает ошибку, выводим её
         await message.reply(f"Ошибка: {e}")
 
 async def main():
